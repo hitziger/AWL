@@ -1,0 +1,6 @@
+This folder contains matlab functions that facilitate processing of data representations learned with the AWL algorithm.... TO BE CONTINUED
+
+- compose_signals: reconstructs signals given the learned AWL representation
+
+TO BE CONTINUED
+
