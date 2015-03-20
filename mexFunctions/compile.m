@@ -23,6 +23,9 @@ enable_fftw=1;
 source_dir_cawl='src/CAWL/';
 source_dir_eawl='src/EAWL/';
 out_dir='build/';
+if ~exist(out_dir,'dir')
+	mkdir(out_dir)
+end
 
 % files to be compiled
 COMPILE_CAWL = { 'mexMCSpike.cpp',...
