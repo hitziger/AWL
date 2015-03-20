@@ -830,8 +830,9 @@ void mexFunction(
                     if (tau[k].size()<3) {
                         if (nattempts > 3) {
                             if (param.verbose)
-                                mexWarnMsgTxt("Too few detections of spike %d, "
-                                    "despite multiple reinitializations");
+                                mexPrintf("Too few detections of spike %d, "
+                                    "despite multiple reinitializations",k);
+                                mexWarnMsgTxt("Ignoring this spike!");
                             nattempts = -1;
                             break;
                         }

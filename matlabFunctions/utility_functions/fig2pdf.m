@@ -43,5 +43,7 @@ if tight
     tightfig;
 end
 
+
 print(h, '-painters', '-dpdf', '-r600', [outdir filename]);
 %saveas(h,[outdir filename],'pdf');
+close(h)

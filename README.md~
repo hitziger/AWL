@@ -5,20 +5,17 @@ Neuroelectrical Activity in the Brain" by Sebastian Hitziger.
 Content of folders:
 -mexFunctions: C++ source code of mex functions, need to be compiled
 -matlabFunctions: different custom utility functions
--Experiments: contains a subfolder for each experiment in the thesis 
-(chronological order)
+-Experiments: contains a subfolder for each experiment in the thesis (chronological order)
 
 Requirements:
 -Operating system: linux
 -C-library fftw3 (http://www.fftw.org/) for fast implementation
--MATLAB package fastICA (http://research.ics.aalto.fi/ica/fastica/), 
-used in some of the experiments
+-MATLAB package fastICA (http://research.ics.aalto.fi/ica/fastica/), used in some of the experiments
 
 Installation (under linux):
 -open script mexFunctions/compile.m in MATLAB
 -make specifications for fftw library (see script)
--run script mexFunctions/compile.m, matlab functions are written 
-to mexFunctions/build/
+-run script mexFunctions/compile.m, matlab functions are written to mexFunctions/build/
 
 Running experiments:
 -open one of the folders in Experiments/ in MATLAB

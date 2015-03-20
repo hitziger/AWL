@@ -2,7 +2,11 @@
 
 % fftw library required
 % IMPORTANT: specify STATIC library, (program crashes for
-% dynamic library, due to conflict with MATLAB internal fftw library)
+% dynamic library, due to conflict with MATLAB internal fftw library):
+% yum install fftw-static
+
+fftw_static_lib='/usr/lib/libfftw3.a';
+fftw_header = '/usr/include/';
 
 fftw_static_lib='/home/shitzige/compiles/lib/libfftw3.a';
 fftw_header = '/home/shitzige/compiles/include/';

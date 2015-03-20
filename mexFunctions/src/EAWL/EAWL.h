@@ -268,7 +268,6 @@ void Trainer<T>::_align_dict() {
     int* p_De = _Delta.rawX();
     Vector<T> dk;
     Vector<T> dTemp;
-    bool first_found = true;
 
     for (int k=0; k<_K; ++k) {
         meankT = T();
@@ -285,15 +284,8 @@ void Trainer<T>::_align_dict() {
         meank = floor(meankT + 0.5);
         // check if mean deviates from 0
         if (meank != 0) {
-            if (_verbose) {
-                if (first_found) {
-                    mexPrintf("Aligning atoms (it %d): ", _i);
-                    first_found=false;
-                }
-                shift = abs(meank);
-                if (meank<0) shift*=-1;
-                mexPrintf("%d (%d st) ", k, shift);
-            }
+            shift = abs(meank);
+            if (meank<0) shift*=-1;
             _D.refCol(k,dk);
             dTemp.copy(dk);
             dk.setZeros();
@@ -303,7 +295,6 @@ void Trainer<T>::_align_dict() {
             dk.normalize();
         }
     }
-    if (_verbose && !first_found) mexPrintf("\n");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -463,10 +454,8 @@ template <typename T>
 void Trainer<T>::train() {
 
     ///// start timer /////////////////////////////////////////////////////////
-    Timer timeALL, timePREP, timeSC1, timeSC1a, timeSC1b, timeSC2, timeSC3,
-          timeSC, timeDU, timeMAIN, timeSCMISC, timeMISC, timeCORR1, timeFFT,
-          timeCORR2, timeCopy, timeShMat;
-    if (_verbose) timePREP.start();
+    Timer timeALL, timeSC, timeDU, timeMISC, timeCORR, timeCOV;
+    if (_verbose) timeMISC.start();
     if (_verbose) timeALL.start();
 
     /*************************************************************************/
@@ -480,17 +469,16 @@ void Trainer<T>::train() {
     if (!_silent) {
         mexPrintf("*****Epoched Adaptive Waveform Learning*****\n");
         if (_verbose) {
-            mexPrintf(" mode with parameters:\n");
-            mexPrintf("   lambda: %g\n", _lambda);
-            mexPrintf("   X: %d x %d\n", _X.m(), _X.n());
-            mexPrintf("   D: %d x %d\n", _D.m(), _D.n());
-            mexPrintf("   S: %d\n",_S);
-            mexPrintf("   num threads: %d\n", _NUM_THREADS ); 
-            if (_posAlpha) mexPrintf("Pos. constr. on coefficients\n"); 
-            if (_clean) mexPrintf("Cleaning activated\n"); 
-            if (_align) mexPrintf("Aligning activated\n"); 
-            if (_mcopies) mexPrintf("Multiple copies allowed\n"); 
-            if (_lars_lasso) mexPrintf("Lars lasso used\n"); 
+            mexPrintf("Parameters:\n");
+            mexPrintf("  - lambda (l1-regularization): %g\n", _lambda);
+            mexPrintf("  - X (signal matrix)         : %d x %d\n", _X.m(), _X.n());
+            mexPrintf("  - D (waveform matrix)       : %d x %d\n", _D.m(), _D.n());
+            //mexPrintf("   num threads: %d\n", _NUM_THREADS ); 
+            if (_posAlpha) mexPrintf("   - positivity constraint on\n"); 
+            if (_clean) mexPrintf("   - cleaning activated\n"); 
+            if (_align) mexPrintf("   - aligning activated\n"); 
+            if (_mcopies) mexPrintf("   - multiple copies allowed\n"); 
+            //if (_lars_lasso) mexPrintf("Lars lasso used\n"); 
             if (_L<_D.n()) mexPrintf("Maximal no. of active atoms is %d\n",_L);
         }
     }
@@ -578,8 +566,7 @@ void Trainer<T>::train() {
     ThreadVec<Vector<T> >   work2T   (_NUM_THREADS,_KK,true);
     ThreadVec<Vector<T> >   work3T   (_NUM_THREADS,_KK,true);
   
-    if (_verbose) timePREP.stop();
-    if (_verbose) timeMAIN.start();
+    if (_verbose) timeMISC.stop();
 
     /*************************************************************************/
     /***** MAIN LOOP OVER SPARSE CODING AND DICT UPDATES *********************/
@@ -589,7 +576,7 @@ void Trainer<T>::train() {
     ///// loop breaks after sparse coding if converged or max. ////////////////
     ///// number of iterations is reached /////////////////////////////////////
     while (true) {
-        if (_verbose) timeSCMISC.start();
+        if (_verbose) timeMISC.start();
 
         ///// increment iteration and display /////////////////////////////////
         ++_i;
@@ -609,9 +596,8 @@ void Trainer<T>::train() {
             this->_clean_dict(G);
         }
 
-        ///// unroll dictionary ///////////////////////////////////////////////
+        ///// unroll dictionary (only if no fft used!) ////////////////////////
         if (!_fft) {
-            if (_verbose) timeSC1.start();
             Vector<T> dd,d;
             int index = 0;
             for (int k = 0; k<_K; ++k) {
@@ -622,15 +608,16 @@ void Trainer<T>::train() {
                     ++index;
                 }
             }
-            if (_verbose) timeSC1.stop();
         }
 
         ///// set up covariance matrix GG of unrolled dictionary //////////////
-        if (_verbose) timeShMat.start();
+        if (_verbose) timeMISC.stop();
+        if (_verbose) timeCOV.start();
         DtD.set(_D);
-        if (_verbose) timeShMat.stop();
         DtD.addDiag(_lambda2);
-
+        if (_verbose) timeCOV.stop();
+        if (_verbose) timeMISC.start();
+        
 #ifdef FFT_CONV
         Vector<T> Dj,Dfk;
         for (int k = 0; k<_K; ++k) {
@@ -646,17 +633,15 @@ void Trainer<T>::train() {
          ///// generate random sequence to cycle through data //////////////////
         perm.randperm(_M);
         iteration_complete = false;
-        if (_verbose) timeSCMISC.stop();
+        if (_verbose) timeMISC.stop();
+
         while (!iteration_complete) {
-            
 
-            /*****************************************************************/
-            /***** PARALLEL LOOP OVER BATCH FOR SPARSE CODING ****************/
-            /*****************************************************************/
 
-            if (_verbose) timeSC.start();
-            int j;
-            for (j = 0; j<_M; ++j) {
+            ///// sparse coding individually //////////////////////////////////////
+            // TODO: could be performed in parallel (threads already set up)
+            for (int j = 0; j<_M; ++j) {
+                if (_verbose) timeCORR.start();
                 int numT=0;
 
                 const int m=perm[j];
@@ -673,9 +658,7 @@ void Trainer<T>::train() {
                 Vector<T>&   work3j= work3T[numT];   
                 Xm=_X.refCol(m);
                 if (!_fft) {
-                    if (_verbose) timeSC1.start();
                     DD.multTrans(*Xm,DtRj);
-                    if (_verbose) timeSC1.stop();
                 }
                 else {
                     Vector<T> Dk;
@@ -683,7 +666,6 @@ void Trainer<T>::train() {
                     std::memset(fft_buffer+Xm->n(),0,(fft_len2-Xm->n())*sizeof(T));
                     fftw_execute(p2);
                     cblas_copy<T>(fft_len2,fft_buffer,1,fft_buffer2,1);
-                    if (_verbose) timeSC1a.start();
                     for (int k = 0; k<_K; ++k) {
                         if (k>0) cblas_copy<T>(fft_len2,fft_buffer2,1,fft_buffer,1);
                         Df.refCol(k,Dk);
@@ -695,33 +677,28 @@ void Trainer<T>::train() {
                             fft_buffer[i]+=Dk[fft_len2-i]*fft_buffer2[fft_len2-i]; //'+' for cross-corr. 
                         for (int i=fft_len2/2+1;i<fft_len2;++i)
                             fft_buffer[i]+=Dk[i]*fft_buffer2[fft_len2-i];
-                    if (_verbose) timeSC1b.start();
                         fftw_execute(ip2);
-                    if (_verbose) timeSC1b.stop();
                         for (int l=0;l<_S;++l) { 
                             DtRj[k*_S+l]=fft_buffer[_S-l-1]/fft_len2;
                         }
                     }
-                    if (_verbose) timeSC1a.stop();
                 }
+                if (_verbose) timeCORR.stop();
+                if (_verbose) timeSC.start();
 
                 T normX=normsXsq[m];
                 coeffsj.setZeros();
                 indj.setZeros();
              
                 ///// sparse coding ///////////////////////////////////////////
-                if (_verbose) timeSC2.start();
                 modLARS(DtRj,DtD,GGsj,GGaj,invGGsj,uj,coeffsj,indj,
                         work1j,work2j,work3j,normX,_lambda,_posAlpha);
-                if (_verbose) timeSC2.stop();
                
                 ///// update coefficient and latencies for current example ////
-                if (_verbose) timeSC3.start();
                 _update_coeffs(indj,coeffsj,m);
-                if (_verbose) timeSC3.stop();
+                if (_verbose) timeSC.stop();
             }
             iteration_complete = true;
-            if (_verbose) timeSC.stop();
             /*****************************************************************/
             ///// continue sparse coding in first and last iterations /////////
             if (!iteration_complete && (_i==0 || _i>= _maxIter || _converged )) 
@@ -782,6 +759,7 @@ void Trainer<T>::train() {
         }
         if (_verbose) timeMISC.stop();
     }
+    if (_verbose) timeMISC.start();
     if (_reordering) {
         _reorder_dict();
         _correct_signs();
@@ -791,22 +769,15 @@ void Trainer<T>::train() {
         _regErr.setn(_i);
         _changeD.setn(_i);
     }
-    if (_verbose) timeMAIN.stop();
+    if (_verbose) timeMISC.stop();
     if (_verbose) timeALL.stop();
     if (_verbose) {
-        timeALL.printElapsed("Time elapsed       ");
-        timePREP.printElapsed("  -set up          ");
-        timeMAIN.printElapsed("  -main part       ");
-        timeMISC.printElapsed("    -error calc    ");
-        timeDU.printElapsed("    -dict. update  ");
-        timeSC.printElapsed("    -sparse coding ");
-        timeSCMISC.printElapsed("      +misc        ");
-        timeShMat.printElapsed("      +DtD         ");
-        timeSC1.printElapsed("      +XtD (direct)");
-        timeSC1a.printElapsed("      +XtD (fft)   ");
-        timeSC1b.printElapsed("        -FFT       ");
-        mexPrintf("        (%d)\n", fft_len2); 
-        timeSC2.printElapsed("      +LARS        ");
+        timeALL.printElapsed(   "Time elapsed (total)              ");
+        timeCOV.printElapsed(   "  -covariances between waveforms  ");
+        timeCORR.printElapsed(  "  -correlations signal/waveforms  ");
+        timeSC.printElapsed(    "  -sparse coding                  ");
+        timeDU.printElapsed(    "  -waveform updates               ");
+        timeMISC.printElapsed(  "  -miscellaneous                  ");
         _tnet=timeALL.getElapsed()-timeMISC.getElapsed();
     }
 };
