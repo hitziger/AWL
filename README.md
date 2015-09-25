@@ -1,6 +1,8 @@
 This folder contains the data and the MATLAB code to reproduce the 
 experiments conducted in the PhD thesis "Modeling the Variability of
-Neuroelectrical Activity in the Brain" by Sebastian Hitziger.
+Neuroelectrical Activity in the Brain" by Sebastian Hitziger, as well
+as other experiments using the Adaptive Waveform Learning (AWL)
+algorithms. 
 
 Content of folders:
 -mexFunctions: C++ source code of mex functions, need to be compiled

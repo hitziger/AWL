@@ -1,0 +1,11 @@
+MoTIF (Matching of Time-Invariant Filters)
+
+For a description of the algorithm refer to
+
+P. Jost, S. Lesage, P. Vandergheynst, and R. Gribonval, “Learning
+redundant dictionaries with translation invariance property: the MoTIF
+algorithm,” IEEE, Tech. Rep., 2005.
+
+The included Matlab code of the MoTIF algorithm was kindly provided
+to us by the authors, for a comparison with our method E-AWL.
+

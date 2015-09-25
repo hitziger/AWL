@@ -7,8 +7,8 @@
 % yum install fftw-static
 % now specify the static library and the include directory:
 
-fftw_static_lib='/usr/lib/libfftw3.a';
-fftw_header = '/usr/include/';
+fftw_static_lib='/home/shitzige/compiles/lib/libfftw3.a';
+fftw_header = '/home/shitzige/compiles/include/';
 
 
 %%%%% COMPILATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

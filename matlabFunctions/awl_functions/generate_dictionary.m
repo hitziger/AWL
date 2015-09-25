@@ -10,14 +10,14 @@ end
 K = 3;
 t0 = 0;
 t1 = 5;
-sig = {'saw','spike','sine'};
+sig = {'sine','spike','saw'};
 offset = [0,3.5,0];
 %freq = [6.33 0.0105 18.37]; old version to generate synthetic experiment
-freq = [2.21 0.0105 6.37];
+freq = [6.37 0.0105 2.21];
 energy = [1 1 1];
-window_type = {'none','none' 'gauss'};
-window_sigma = [0 0.02 0.35];
-window_offset = [0 0 2];
+window_type = {'gauss','none','none'};
+window_sigma = [0.35 0.02 0];
+window_offset = [2 0 0];
 window_cutoff = zeros(1,3);
 
 if nargin>2

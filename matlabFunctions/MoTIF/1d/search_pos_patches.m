@@ -1,0 +1,95 @@
+function [pos_patches, val_obj, max_val] = search_pos_patches(mat_frames,max_pos_frames,atom,hilbert_tag)
+
+% [pos_patches, val_obj] = search_pos_patches(mat_frames,max_pos_frames,atom,hilbert_tag)
+%
+% the first step of the MoTIF algorithm, that search the best 
+% translation of each learning signal to match the atom
+%
+% mat_frames : a matrix which columns are the frames.
+% max_pos_frames : a row vector, where the nth component is 
+%          related to the size of the nth frame. As all the frames but
+%          the largest are zero-padded, it avoid to pick zeros.
+%          max_pos_frames(n) is the maximum value for pos_patches(n)                   
+% atom : the atom to match with the frames : a column vector
+% hilbert_tag = 
+%  {0}: we just search the max correlation between a patch and
+%       the atom itself
+%   1 : we search the maximum correlation between a patch and 
+%       a linear combination of the atom and its hilbert transform
+%       (hypothesis on the atom to be centered and without Nyquist 
+%       component) 
+%   2 : we search the maximum correlation between a patch and 
+%       a linear combination of the atom and its hilbert transform
+%       taking into account the mean and the Nyquist component of 
+%       the atom, in the sense of the simplified objective function
+% pos_patches : a vector having as many components as the number of
+%               frames. the nth component is the position of the 
+%               first sample of the patch in the frame n
+% val_obj : the value of the objective function with the selected 
+%           patch positions
+%
+% Caution :
+% ---------
+% uses fftfilt.m, in the signal processing toolbox
+
+if (nargin < 4)
+  hilbert_tag = 0;
+end
+
+atom = atom(:);
+l_atom = length(atom);
+
+switch hilbert_tag
+ case 0
+  correlations = flipud(fftfilt(atom,flipud(mat_frames)));
+  mask_mat = mask(1,max_pos_frames,size(correlations,1));
+  correlations(~mask_mat) = 0;
+  [max_val pos_patches] = max(abs(correlations));
+  if (nargout > 1)
+    val_obj = sum(max_val.^2);
+  end 
+ case 1
+  h_atom = imag(hilbert(atom));
+  correlations = flipud(fftfilt(atom,flipud(mat_frames)));
+  h_correlations = flipud(fftfilt(h_atom,flipud(mat_frames)));
+  mask_mat = mask(1,max_pos_frames,size(correlations,1));
+  correlations(~mask_mat) = 0;
+  h_correlations(~mask_mat) = 0;
+  [max_val pos_patches] = max(correlations.^2 + h_correlations.^2);
+  if (nargout > 1)
+    val_obj = sum(max_val);
+  end
+ case 2
+  [atom_mn , h_atom , m_atom , n_atom] = decomp_plus_hilbert(atom);
+  mn_atom = m_atom + n_atom;
+  correlations_mn = flipud(fftfilt(atom_mn,flipud(mat_frames)));
+  h_correlations = flipud(fftfilt(h_atom,flipud(mat_frames)));
+  mn_correlations = flipud(fftfilt(mn_atom,flipud(mat_frames)));
+  
+  mask_mat = mask(1,max_pos_frames,size(correlations_mn,1));
+  correlations_mn(~mask_mat) = 0;
+  h_correlations(~mask_mat) = 0;
+  mn_correlations(~mask_mat) = 0;
+  [max_val pos_patches] = max(correlations_mn.^2 + h_correlations.^2 + mn_correlations.^2);
+  if (nargout > 1)
+    val_obj = sum(max_val);
+  end
+ otherwise
+  % this part does the same as hilbert_tag = 2, but on the true
+  % objective function instead of the appoximated objective function
+% $$$   [atom_mn , h_atom , m_atom , n_atom] = decomp_plus_hilbert(atom);
+% $$$   mn_atom = m_atom + n_atom;
+% $$$   correlations_mn = flipud(fftfilt(atom_mn,flipud(mat_frames)));
+% $$$   h_correlations = flipud(fftfilt(h_atom,flipud(mat_frames)));
+% $$$   mn_correlations = flipud(fftfilt(mn_atom,flipud(mat_frames)));
+% $$$   
+% $$$   mask_mat = mask(1,max_pos_frames,size(correlations_mn,1));
+% $$$   correlations_mn(~mask_mat) = 0;
+% $$$   h_correlations(~mask_mat) = 0;
+% $$$   mn_correlations(~mask_mat) = 0;
+% $$$   [max_val pos_patches] = max(sqrt(correlations_mn.^2 + h_correlations.^2) + abs(mn_correlations));
+% $$$   if (nargout > 1)
+% $$$     val_obj = sum(max_val.^2);
+% $$$   end
+end
+
