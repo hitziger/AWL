@@ -9,7 +9,7 @@ run('../../../load_AWL_toolbox');
 % load the results
 resdir = 'results/';
 load([resdir 'results_synthetic_experiment'])
-
+%%
 % parameters
 colors = {'-xgreen','-omagenta','-<cyan','-*blue','->red'};
 
@@ -27,6 +27,7 @@ if SAVE_FIGS
 end
 
 %% show kernel error
+
 
 x_axis = [sigma_amps;sigma_amps; sigma_lats; SNR; SNR];
 titles = {'Increasing number of kernels', 'Variable amplitudes (const. latencies)','Variable latencies','Pink noise'};

@@ -125,7 +125,7 @@ for k=1:K
     hold on
     pos = res.latencies{K}(sel);
     
-    t_axis = t_spike(t_spike<=0.1);
+    t_axis = t_spike(t_spike<=0.15);
     for i=1:length(pos)
         plot(t_axis,X(pos(i)+1:pos(i)+length(t_axis))+offset,'k','linewidth',.2);
         hold on
@@ -133,7 +133,7 @@ for k=1:K
     factor = mean(res.coeffs{K}(res.labels{K}==k-1));
     D_scaled(:,k) = factor*res.D{K}(:,k);
     h=plot(t_axis,D_scaled(1:length(t_axis),k)+offset,'Color',colors(k,:),'linewidth',2)
-    xlim([-0.05,0.1])
+    xlim([0,0.15])
     xlabel('time [s]')
     ylim([-4800 200])
     offset = offset - 1000;    

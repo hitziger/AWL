@@ -1,4 +1,3 @@
-     
 /*!
  * \file
  *
@@ -480,9 +479,24 @@ template<typename T>
 void set_up_Dsk(
           Vector<T>& Dsk,       // stretched spike 
     const Vector<T>& D,         // template spike form
-    const T          spacing    // dilation of spike
+    const Vector<T>& D_ext,
+          Vector<T>& D_filtered,
+    const T          spacing,   // dilation of spike
+          Vector<T>& filter
     ) {
 
+    // perform low-pass filtering if spacing > 1
+    if (spacing > 1.) {
+        T sigma2 = pow(spacing,2);
+        for (int i=0;i<filter.l();++i)
+            filter(i)=exp(-pow((i-(int) filter.l()/2),2)/(2*sigma2));
+        filter/=filter.sum();
+        D_filtered.zeros();
+        for (int i=0;i<D.l();++i)
+            for (int j=0;j<filter.l();++j)
+                D_filtered(i) += D_ext(i+j)*filter(j);         
+    }
+        
     int ncenter = D.argamax();            
     T pos = ncenter*(1- spacing*Dsk.l()/D.l());    
     Dsk.zeros();
@@ -490,7 +504,10 @@ void set_up_Dsk(
         int left = floor(pos);
         // linear interpolation
         if (left<0 || left+1>= D.l()) Dsk[j]=0;
-        else Dsk[j] = (pos-left) * D[left+1] + (1-(pos-left)) * D[left];
+        else {
+            if (spacing > 1.) Dsk[j] = (pos-left) * D_filtered[left+1] + (1-(pos-left)) * D_filtered[left];
+            else Dsk[j] = (pos-left) * D[left+1] + (1-(pos-left)) * D[left];
+        }
         pos+=spacing; 
     }
     Dsk/=Dsk.norm2();
@@ -505,17 +522,63 @@ template<typename T>
 void set_up_Ds(
           Matrix<T>& Ds,            // stretched spikes 
     const Vector<T>& D,             // template spike form
-    const Vector<T>& stretchList    // list of dilations
+          Vector<T>& D_ext,         // extended D, for filtering
+          Vector<T>& D_filtered,    // filtered D
+    const Vector<T>& stretchList,   // list of dilations
+          Vector<T>& filter         // low-pass filter
     ) {
 
+    // set up extended spike form
+    int offset = filter.l()/2;
+    for (int i=0; i<D.l();++i)
+        D_ext(offset+i)=D(i);
+    for (int i=0; i<offset;++i){
+        D_ext(i)=D(offset-i);
+        D_ext(offset+D.l()+i)=D(D.l()-i-2);
+    }
     T spacing;
     int nstretch = stretchList.l();
     Ds.n(nstretch);
     for (int i=0; i<nstretch; ++i) {
         spacing = 1./stretchList[i];
         Vector<T> Dsk(Ds.col(i),Ds.m());
-        set_up_Dsk(Dsk,D,spacing);
+        set_up_Dsk(Dsk,D,D_ext,D_filtered,spacing,filter);
+#ifdef DEBUG_MODE
+        if (debugging_active) {
+            if (i==0 | i== nstretch/2){
+                mexPrintf("DEBUG: Showing filter!\n");
+                mexFigure();
+                mexPlot(filter.l(),filter.ptr());
+                mexPause();
+                mexPrintf("DEBUG: Showing spike!\n");
+                mexFigure();
+                mexPlot(D.l(),D.ptr());
+                mexHoldOn();
+                mexPause();
+                mexPrintf("DEBUG: Showing filtered spike!\n");
+                mexPlot(D_filtered.l(),D_filtered.ptr(),"r");
+                mexTitle("DEBUG: original vs filtered");
+                mexPause();
+            }
+        }
+#endif
     }
+#ifdef DEBUG_MODE
+        if (debugging_active) {
+            mexPrintf("DEBUG: Showing spike!\n");
+            mexFigure();
+            mexPlot(Ds.m(), Ds.col(0)); 
+            mexTitle("DEBUG: different stretches");
+            mexHoldOn();
+            mexPause();
+            mexPlot(Ds.m(), Ds.col(nstretch/3),"r"); 
+            mexPlot(Ds.m(), Ds.col(nstretch/2),"g"); 
+            mexPlot(Ds.m(), Ds.col(nstretch-1),"b"); 
+            mexPause();
+        }
+#endif
+        
+
 }
 ///////////////////////////////////////////////////////////////////////////////
 ////   FUNCTION SET_UP_DC                                                  ////
@@ -694,6 +757,7 @@ void mexFunction(
     }
 
     ///// Initializations ////////////////////////////////////////////////////
+    Vector<double> filter(2*ceil(3.*sqrt(param.maxstretch))+1); 
     Vector<double> stretchList(param.nstretch * param.nfactor); 
     Vector<double> R(X.l());                              // residual signal
     R.copy(X.ptr());
@@ -709,6 +773,10 @@ void mexFunction(
     Vector<int> DtRcomp(Dc.n()*DctX.m());   // used in sparse coding
     Vector<double> DtRval(Dc.n()*DctX.m()); // used in sparse coding 
     Vector<double> work;
+    Vector<double> D_ext(D.l()+filter.l()-1); // used for filtering
+    Vector<double> D_filtered(D.l());         // used for filtering
+
+
     
     ///// Set up stretchList /////////////////////////////////////////////////
     stretchList[0]=1./sqrt(param.maxstretch);
@@ -731,7 +799,7 @@ void mexFunction(
 
         ///// Setting up stretched spikes ////////////////////////////////////
         timeSTRETCH.start();
-        set_up_Ds(Ds,D,stretchList);
+        set_up_Ds(Ds,D,D_ext,D_filtered,stretchList,filter);
         set_up_Dc(Dc,Ds);
 
         // calculate cross-correlations between stretched spikes /////////////

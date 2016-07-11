@@ -11,7 +11,7 @@ function [distance,perm] = kernel_dist_shift(D1,D2)
 % perm : matching permutation of second set of kernels
 
 
-if size(D1) ~= size(D2)
+if size(D1,1) ~= size(D2,1)
     error('Dimensions of input matrix have to match')
 end
 

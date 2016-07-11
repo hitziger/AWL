@@ -33,12 +33,13 @@ load(filename);
 % spike parameters
 t_left = -0.05;     % [seconds] time until negative peak
 t_dist = 0.2;       % [seconds] duration of negative spike wave (use this for distance between detected spikes)
-t_right = 2+t_left; % [seconds] time after negative peak
+t_right = 1.5+t_left; % [seconds] time after negative peak
 
 % select spike with maximal energy
 ind = (1:length(t))';
 sel = ind(t>(t(markers(1))+t_left) & t < (t(markers(1))+t_right));
 t_spike = t(sel) - t(markers(1));
+
 d = zeros(size(t_spike));
 sel = sel - markers(1);
 ind = 0;
@@ -75,6 +76,7 @@ par.alpha=0.1;                     % detection threshold (WARNING: calculation b
 par.verbose=true;
 
 res=mexMCSpike(X,par);
+t_spike = t_spike - t_left;
 
 
 %%%%% save %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

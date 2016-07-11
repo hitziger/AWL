@@ -125,7 +125,7 @@ for i=1:length(pos)
     hold on
 end
 plot(t_spike,D_scaled,'b','Linewidth',3);
-xlim([t_spike(1) 0.1])        
+xlim([t_spike(1) 0.15])        
 xlabel('time [s]')
 set(gca,'YAxisLocation','right')
     xlabel('time [s]')

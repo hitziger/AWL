@@ -1,4 +1,4 @@
-function [X,shift,amp] = create_examples(D,t,param,PLOT)
+function [X,shift,amp] = create_examples(D,t,param,normalize,PLOT)
 
 % creates trials (X) as linear combinations of shifted waveforms (D)
 %
@@ -38,6 +38,12 @@ if isfield(param,'positive')
 else 
     positive = false;
 end
+if nargin < 5 
+    if nargin < 4
+        normalize = true;
+    end
+    PLOT = false;
+end
 
 
 % calculate some secondary parameters
@@ -75,6 +81,9 @@ X = zeros(n,M);
 for j=1:M
     for i=1:K
         atom = D(nLeft+1+lat_n(i,j):end-nLeft+lat_n(i,j),i);
+        if normalize
+            atom = atom/norm(atom);
+        end
         X(:,j) = X(:,j) + amp(i,j) * atom;
     end
 end

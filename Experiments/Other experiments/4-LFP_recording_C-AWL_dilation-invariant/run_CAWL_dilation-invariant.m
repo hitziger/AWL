@@ -32,7 +32,7 @@ load(filename);
 % spike parameters
 t_left = -0.05;     % [seconds] time until negative peak
 t_dist = 0.2;       % [seconds] duration of negative spike wave
-t_right = 2+t_left; % [seconds] time after negative peak
+t_right = 1.5+t_left; % [seconds] time after negative peak
 
 % select spike with maximal energy
 ind = (1:length(t))';
@@ -72,6 +72,8 @@ par.verbose=true;
 
 % run C-AWL for one kernel with adaptive duration (AD)
 res=mexADSpike(X,par);
+
+t_spike = t_spike - t_left;
 
 % save results
 savedir = 'results/';

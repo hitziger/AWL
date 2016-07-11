@@ -41,7 +41,7 @@ xlims = [-1,2];
 % plot figure with epochs and average
 h_spikes = figure;
 for i=1:nclass+1
-    subaxis(nrows,ncols,i,'SpacingVert', 0.1, 'SpacingHoriz', 0.02, 'MarginBottom', 0.1, 'MarginLeft', 0.05, 'MarginRight', 0.01, 'MarginTop', 0.1)   
+    subaxis(nrows,ncols,i,'SpacingVert', 0.1, 'SpacingHoriz', 0.02, 'MarginBottom', 0.1, 'MarginLeft', 0.06, 'MarginRight', 0.01, 'MarginTop', 0.1)   
     if i<=nclass
         ex_id = class_offset(i)+1;
         plot(t,X(:,ex_id),'black');
@@ -51,9 +51,11 @@ for i=1:nclass+1
         title('average over epochs','fontsize',14);
     end
     xlim(xlims);    
-    ylim([-0.5 0.1]);     
+    ylim([-800 200]);
     if mod(i,ncols)~=1
         set(gca, 'YTick', []);
+    else
+        ylabel('$\mu$V','fontsize',16,'interpreter','latex')
     end
     if nplots - i < ncols
         xlabel('time [s]','fontsize',14)
@@ -179,6 +181,7 @@ for K=1:Kmax + 2
     if K==1
         cbar_axes = colorbar('Position',[0.75 0.5 0.03 0.3]);
         set(cbar_axes,'YAxisLocation','left')
+        ylabel(cbar_axes,'\mu V','fontsize',14)
     end
     set(gca,'YTick',1:K)
     set(gca,'YTickLabel',1:K)
@@ -263,8 +266,9 @@ for i=1:nrows
     
     %cbar_axes = colorbar('Location','NorthOutside')
     %if i==1
-        cbar_axes = colorbar('Position',[0.76 0.98-0.3*i 0.0075 0.25]);
+        cbar_axes = colorbar('Position',[0.76 0.98-0.3*i 0.0075 0.2]);
         set(cbar_axes,'YAxisLocation','left')
+        title(cbar_axes,'\mu V','fontsize',14)
     %end
     
     set(gca,'YTick',1:K)
